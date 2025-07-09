@@ -14,34 +14,36 @@ Cette API suit les principes de **Clean Architecture** et **SOLID** :
 ## 🚀 Fonctionnalités
 
 ### Super Admin
-
-- ✅ Gestion des salles d'entraînement (création, modification, suppression, approbation)
-- ✅ Gestion des types d'exercices
-- ✅ Création de badges et récompenses avec règles dynamiques
-- ✅ Gestion des utilisateurs (désactivation, suppression)
+- ✅ Gestion des salles d'entraînement (approbation/rejet)
+- ✅ Gestion des utilisateurs (activation/désactivation)
+- ✅ Gestion des types d'exercices (CRUD complet)
+- ✅ Création et gestion des badges avec règles dynamiques
+- ✅ Statistiques et analytics complètes
+- ✅ Dashboard administrateur avec métriques temps réel
 
 ### Propriétaire de Salle
-
-- ✅ Enregistrement de salle de sport avec validation
-- ✅ Proposition de défis spécifiques à sa salle
-- ✅ Gestion des informations de la salle
+- ✅ Enregistrement et gestion de salle de sport
+- ✅ Création et gestion de défis spécifiques à sa salle
+- ✅ Statistiques de la salle et des participants
+- ✅ Dashboard propriétaire avec analytics
 
 ### Utilisateur Client
-
 - ✅ Création et partage de défis d'entraînement
-- ✅ Exploration et filtrage des défis
-- ✅ Suivi de l'entraînement avec sessions de workout
-- ✅ Défis sociaux et collaboration
-- ✅ Système de récompenses et badges
-- ✅ Classements des utilisateurs
+- ✅ Exploration et filtrage des défis par difficulté/statut
+- ✅ Participation aux défis avec suivi de progression
+- ✅ Enregistrement détaillé des sessions d'entraînement
+- ✅ Système de badges avec attribution automatique
+- ✅ Dashboard personnel avec historique et statistiques
+- ✅ Suivi des calories brûlées et durées d'entraînement
 
 ## 🛠️ Stack Technique
 
 - **Framework** : AdonisJS 6
-- **Base de données** : MongoDB
-- **Conteneurisation** : Docker & Docker Compose
-- **Tests** : Japa (unitaires et intégration)
+- **Base de données** : MongoDB (driver natif)
+- **Authentification** : JWT custom service
 - **Validation** : VineJS
+- **Tests** : Japa (46 fichiers de test)
+- **Conteneurisation** : Docker & Docker Compose
 - **Architecture** : Clean Architecture + SOLID
 
 ## 📋 Prérequis
@@ -53,20 +55,17 @@ Cette API suit les principes de **Clean Architecture** et **SOLID** :
 ## 🚀 Installation et Démarrage
 
 ### 1. Cloner le projet
-
 ```bash
 git clone <repository-url>
 cd gym-api
 ```
 
 ### 2. Installer les dépendances
-
 ```bash
 npm install
 ```
 
 ### 3. Démarrer avec Docker
-
 ```bash
 # Démarrer MongoDB et l'application
 docker-compose up -d
@@ -76,7 +75,6 @@ docker-compose up mongodb -d
 ```
 
 ### 4. Démarrage en développement
-
 ```bash
 # Variables d'environnement
 cp .env.example .env
@@ -92,7 +90,6 @@ L'API sera disponible sur `http://localhost:3333`
 ### Authentification
 
 #### Inscription
-
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -105,7 +102,6 @@ Content-Type: application/json
 ```
 
 #### Connexion
-
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -116,10 +112,21 @@ Content-Type: application/json
 }
 ```
 
+#### Profil utilisateur
+```http
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+#### Déconnexion
+```http
+POST /api/auth/logout
+Authorization: Bearer <token>
+```
+
 ### Gestion des Salles
 
 #### Créer une salle (Gym Owner)
-
 ```http
 POST /api/gyms
 Authorization: Bearer <token>
@@ -136,10 +143,15 @@ Content-Type: application/json
 }
 ```
 
-#### Approuver une salle (Super Admin)
-
+#### Lister les salles en attente (Super Admin)
 ```http
-PATCH /api/gyms/:id/approve
+GET /api/admin/gyms/pending
+Authorization: Bearer <token>
+```
+
+#### Approuver une salle (Super Admin)
+```http
+PATCH /api/admin/gyms/:id/approve
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -148,17 +160,9 @@ Content-Type: application/json
 }
 ```
 
-#### Lister les salles en attente (Super Admin)
-
-```http
-GET /api/gyms/pending
-Authorization: Bearer <token>
-```
-
 ### Gestion des Défis
 
 #### Créer un défi
-
 ```http
 POST /api/challenges
 Authorization: Bearer <token>
@@ -176,15 +180,39 @@ Content-Type: application/json
 }
 ```
 
-#### Rejoindre un défi
+#### Lister les défis avec filtres
+```http
+GET /api/challenges?page=1&limit=10&status=active&difficulty=intermediate&gymId=123
+Authorization: Bearer <token>
+```
 
+#### Rejoindre un défi
 ```http
 POST /api/challenges/:id/join
 Authorization: Bearer <token>
 ```
 
-#### Ajouter une session d'entraînement
+#### Quitter un défi
+```http
+DELETE /api/challenges/:id/leave
+Authorization: Bearer <token>
+```
 
+#### Obtenir les participants d'un défi
+```http
+GET /api/challenges/:id/participants?page=1&limit=10&status=active
+Authorization: Bearer <token>
+```
+
+### Gestion des Participations
+
+#### Lister mes participations
+```http
+GET /api/participations?page=1&limit=10&status=active
+Authorization: Bearer <token>
+```
+
+#### Ajouter une session d'entraînement
 ```http
 POST /api/participations/:participationId/workout-sessions
 Authorization: Bearer <token>
@@ -198,20 +226,86 @@ Content-Type: application/json
 }
 ```
 
-### Administration
-
-#### Désactiver un utilisateur (Super Admin)
-
+#### Modifier une session d'entraînement
 ```http
-DELETE /api/users/:id
+PUT /api/participations/:participationId/workout-sessions/:sessionId
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "duration": 60,
+  "caloriesBurned": 400,
+  "notes": "Session modifiée"
+}
+```
+
+#### Supprimer une session d'entraînement
+```http
+DELETE /api/participations/:participationId/workout-sessions/:sessionId
 Authorization: Bearer <token>
 ```
 
-#### Créer un badge (Super Admin)
+### Dashboards et Statistiques
 
+#### Dashboard Client
 ```http
-POST /api/badges
+GET /api/client/dashboard
 Authorization: Bearer <token>
+```
+
+#### Statistiques personnelles
+```http
+GET /api/client/stats
+Authorization: Bearer <token>
+```
+
+#### Mes défis
+```http
+GET /api/client/challenges
+Authorization: Bearer <token>
+```
+
+#### Mes badges
+```http
+GET /api/client/badges
+Authorization: Bearer <token>
+```
+
+#### Historique d'entraînement
+```http
+GET /api/client/workout-history
+Authorization: Bearer <token>
+```
+
+#### Dashboard Propriétaire (Gym Owner)
+```http
+GET /api/owner/gym
+PUT /api/owner/gym
+GET /api/owner/challenges
+GET /api/owner/stats
+Authorization: Bearer <token>
+```
+
+### Administration (Super Admin)
+
+#### Statistiques globales
+```http
+GET /api/admin/stats
+Authorization: Bearer <token>
+```
+
+#### Gestion des utilisateurs
+```http
+GET /api/admin/users?page=1&limit=20&role=client&isActive=true
+GET /api/admin/users/:id
+PATCH /api/admin/users/:id/activate
+DELETE /api/admin/users/:id
+Authorization: Bearer <token>
+```
+
+#### Gestion des badges
+```http
+POST /api/admin/badges
 Content-Type: application/json
 
 {
@@ -228,11 +322,16 @@ Content-Type: application/json
 }
 ```
 
-#### Créer un type d'exercice (Super Admin)
-
 ```http
-POST /api/exercise-types
+GET /api/admin/badges?page=1&limit=20&isActive=true
+PUT /api/admin/badges/:id
+DELETE /api/admin/badges/:id
 Authorization: Bearer <token>
+```
+
+#### Gestion des types d'exercices
+```http
+POST /api/admin/exercise-types
 Content-Type: application/json
 
 {
@@ -243,42 +342,61 @@ Content-Type: application/json
 }
 ```
 
+```http
+GET /api/admin/exercise-types?page=1&limit=20&difficulty=advanced
+PUT /api/admin/exercise-types/:id
+DELETE /api/admin/exercise-types/:id
+Authorization: Bearer <token>
+```
+
 ## 🧪 Tests
 
 ### Lancer tous les tests
-
 ```bash
 npm test
 ```
 
-### Tests unitaires seulement
-
+### Tests par catégorie
 ```bash
-npm run test -- --filter="unit"
+# Tests unitaires
+npm test -- --filter="unit"
+
+# Tests d'intégration
+npm test -- --filter="functional"
+
+# Tests spécifiques
+npm test -- --grep="badge"
+npm test -- --grep="challenge"
 ```
 
-### Tests d'intégration seulement
-
-```bash
-npm run test -- --filter="functional"
-```
+### Couverture de tests
+Le projet inclut **46 fichiers de test** couvrant :
+- Tests unitaires des entités
+- Tests des cas d'usage
+- Tests d'intégration des contrôleurs
+- Tests fonctionnels de l'API complète
 
 ## 🏗️ Structure du Projet
 
 ```
 app/
 ├── domain/
-│   ├── entities/           # Entités métier
+│   ├── entities/           # Entités métier (User, Gym, Challenge, etc.)
 │   ├── repositories/       # Interfaces des repositories
 │   └── services/          # Interfaces des services
 ├── application/
-│   └── use-cases/         # Cas d'usage métier
+│   └── use_cases/         # Cas d'usage par domaine
+│       ├── user/          # Gestion utilisateurs
+│       ├── gym/           # Gestion salles
+│       ├── challenge/     # Gestion défis
+│       └── badge/         # Gestion badges
 ├── infrastructure/
 │   ├── database/          # Configuration MongoDB
-│   ├── repositories/      # Implémentation MongoDB
+│   ├── repositories/      # Implémentations MongoDB
 │   └── services/          # Services d'infrastructure
-├── controllers/           # Contrôleurs REST
+├── controllers/           # Contrôleurs REST par domaine
 ├── middleware/           # Middleware d'authentification
+├── helpers/              # Fonctions utilitaires
 └── providers/           # Providers de dépendances
 
 tests/
@@ -289,63 +407,123 @@ tests/
 ## 🎯 Modèle de Données
 
 ### Utilisateur
-
-- **id** : Identifiant unique
-- **email** : Email unique
-- **password** : Mot de passe hashé
-- **role** : super_admin | gym_owner | client
-- **isActive** : Statut actif/inactif
+```typescript
+{
+  id: string
+  email: string
+  password: string (hashé)
+  role: 'super_admin' | 'gym_owner' | 'client'
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
 ### Salle de Sport
-
-- **id** : Identifiant unique
-- **name** : Nom de la salle
-- **address** : Adresse complète
-- **contact** : Informations de contact
-- **description** : Description des installations
-- **capacity** : Capacité d'accueil
-- **equipment** : Liste des équipements
-- **activities** : Types d'activités proposées
-- **ownerId** : Référence au propriétaire
-- **status** : pending | approved | rejected
+```typescript
+{
+  id: string
+  name: string
+  address: string
+  contact: string
+  description: string
+  capacity: number
+  equipment: string[]
+  activities: string[]
+  ownerId: string
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
 ### Défi
-
-- **id** : Identifiant unique
-- **title** : Titre du défi
-- **description** : Description détaillée
-- **objectives** : Liste des objectifs
-- **exerciseTypes** : Types d'exercices impliqués
-- **duration** : Durée en jours
-- **difficulty** : beginner | intermediate | advanced
-- **creatorId** : Créateur du défi
-- **gymId** : Salle associée (optionnel)
-- **status** : active | completed | cancelled
+```typescript
+{
+  id: string
+  title: string
+  description: string
+  objectives: string[]
+  exerciseTypes: string[]
+  duration: number
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  creatorId: string
+  gymId?: string
+  status: 'active' | 'completed' | 'cancelled'
+  maxParticipants?: number
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
 ### Participation au Défi
+```typescript
+{
+  id: string
+  challengeId: string
+  userId: string
+  status: 'active' | 'completed' | 'abandoned'
+  progress: number (0-100)
+  joinedAt: Date
+  completedAt?: Date
+  workoutSessions: WorkoutSession[]
+}
+```
 
-- **id** : Identifiant unique
-- **challengeId** : Référence au défi
-- **userId** : Référence à l'utilisateur
-- **status** : active | completed | abandoned
-- **progress** : Pourcentage de progression (0-100)
-- **workoutSessions** : Sessions d'entraînement enregistrées
+### Session d'Entraînement
+```typescript
+{
+  id: string
+  date: Date
+  duration: number
+  caloriesBurned: number
+  exercisesCompleted: string[]
+  notes?: string
+}
+```
 
 ### Badge
+```typescript
+{
+  id: string
+  name: string
+  description: string
+  iconUrl: string
+  rules: BadgeRule[]
+  isActive: boolean
+  createdBy: string
+  createdAt: Date
+  updatedAt: Date
+}
+```
 
-- **id** : Identifiant unique
-- **name** : Nom du badge
-- **description** : Description du badge
-- **iconUrl** : URL de l'icône
-- **rules** : Règles d'attribution dynamiques
-- **isActive** : Statut actif/inactif
+### Règle de Badge
+```typescript
+{
+  type: 'challenge_completion' | 'streak' | 'participation' | 'custom'
+  condition: string
+  value: number
+}
+```
+
+### Badge Utilisateur
+```typescript
+{
+  id: string
+  userId: string
+  badgeId: string
+  earnedAt: Date
+  metadata?: Record<string, any>
+}
+```
 
 ## 🔒 Sécurité
 
-- **Authentification** : Token-based (middleware personnalisé)
+- **Authentification** : JWT token-based avec service personnalisé
 - **Autorisation** : Contrôle d'accès basé sur les rôles
 - **Validation** : Validation stricte des données avec VineJS
 - **Hashing** : Mots de passe hashés avec AdonisJS Hash
+- **Middleware** : Protection des routes avec middleware d'authentification
 
 ## 🐳 Docker
 
@@ -361,7 +539,31 @@ Le projet inclut une configuration Docker complète :
 ```env
 NODE_ENV=development
 MONGODB_URI=mongodb://admin:password@localhost:27017/gym_api?authSource=admin
+JWT_SECRET=your-secret-key-here
 ```
+
+## 🚀 Fonctionnalités Avancées
+
+### Système de Badges Dynamique
+- Règles d'attribution configurables
+- Évaluation automatique des badges
+- Suivi des métadonnées d'attribution
+
+### Analytics et Statistiques
+- Statistiques temps réel pour tous les rôles
+- Métriques de performance individuelles
+- Rapports de progression mensuels
+- Suivi des calories et durées d'entraînement
+
+### Pagination et Filtrage
+- Tous les endpoints de liste supportent la pagination
+- Filtres avancés par statut, rôle, difficulté
+- Tri et recherche intégrés
+
+### Gestion Multi-tenant
+- Séparation des données par rôle
+- Dashboard personnalisé pour chaque type d'utilisateur
+- Permissions granulaires
 
 ## 🤝 Contribution
 
